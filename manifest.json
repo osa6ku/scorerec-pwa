@@ -1,0 +1,24 @@
+{
+  "name": "ScoreRec - ゴルフスコア・トモダチ管理",
+  "short_name": "ScoreRec",
+  "description": "アマチュアゴルファーのための高速スコア記録・トモダチ計算・衛星ショット追跡アプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1b4332",
+  "theme_color": "#1b4332",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

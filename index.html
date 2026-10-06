@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ScoreRec</title>
+  
+  <!-- ⛳️ PWA & ホーム画面追加 (iOS / Android 完全対応) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- iOS Safari フルスクリーン（アドレスバー非表示）設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ScoreRec">
+  <meta name="application-name" content="ScoreRec">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b4332">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #1b4332;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .app-frame-wrap {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      flex: 1;
+      border: none;
+      display: block;
+      background-color: #ffffff;
+    }
+
+    /* スプラッシュローディング画面 */
+    .splash {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 100;
+      transition: opacity 0.35s ease;
+    }
+    .splash.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash img {
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .splash-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 1px;
+    }
+    .spinner {
+      width: 26px;
+      height: 26px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #ffd166;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 設定・切替モーダル */
+    .setup-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+    .setup-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      position: relative;
+    }
+    .setup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .setup-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #1b4332;
+    }
+    .setup-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: #868e96;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .setup-desc {
+      font-size: 0.82rem;
+      color: #495057;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .setup-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .setup-btn {
+      width: 100%;
+      padding: 12px;
+      background: #2d6a4f;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .setup-btn:active {
+      background: #1b4332;
+    }
+
+    /* ページ高速切替ボタン群 */
+    .quick-actions {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .quick-title {
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: #6c757d;
+      margin-bottom: 2px;
+    }
+    .quick-row {
+      display: flex;
+      gap: 8px;
+    }
+    .quick-btn {
+      flex: 1;
+      padding: 9px 8px;
+      border-radius: 6px;
+      border: 1px solid #ced4da;
+      background: #f8f9fa;
+      font-size: 0.82rem;
+      font-weight: bold;
+      color: #212529;
+      cursor: pointer;
+      text-align: center;
+    }
+    .quick-btn:active {
+      background: #e9ecef;
+    }
+    .quick-btn.active {
+      background: #e7f5ff;
+      border-color: #339af0;
+      color: #1971c2;
+    }
+
+    /* 右下フローティングギアボタン（URL・モード切替用） */
+    .gear-btn {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 8px) + 68px);
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      background: rgba(27, 67, 50, 0.75);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 18px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.15s ease, opacity 0.2s ease;
+      opacity: 0.7;
+    }
+    .gear-btn:active {
+      transform: scale(0.92);
+      opacity: 1;
+    }
+
+    /* ホーム画面追加の案内ヒント（ブラウザ直接アクセス時のみ） */
+    .install-tip {
+      margin-top: 12px;
+      padding: 10px;
+      background: #fff9db;
+      border: 1px solid #ffe066;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      color: #d9480f;
+      line-height: 1.4;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- スプラッシュ画面 -->
+  <div class="splash" id="splashScreen">
+    <img src="icon-192.png" alt="ScoreRec">
+    <div class="splash-title">ScoreRec</div>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- 設定・切替モーダル -->
+  <div class="setup-modal" id="setupModal">
+    <div class="setup-card">
+      <div class="setup-header">
+        <div class="setup-title">⚙️ ScoreRec 設定</div>
+        <button type="button" class="setup-close" onclick="closeSetupModal()">✕</button>
+      </div>
+
+      <div class="setup-desc">
+        GASのWebアプリURLを入力してください。次回からこの設定で自動全画面起動します。
+      </div>
+      <input type="url" class="setup-input" id="inputGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      <button type="button" class="setup-btn" onclick="saveGasUrl()">💾 URLを保存して開く</button>
+
+      <!-- 画面切替 -->
+      <div class="quick-actions" id="quickActionsBox">
+        <div class="quick-title">📌 ページ切替・再読み込み</div>
+        <div class="quick-row">
+          <button type="button" class="quick-btn" onclick="switchPage('main')">⛳️ スコア記録</button>
+          <button type="button" class="quick-btn" onclick="switchPage('handover')">📝 申し送り</button>
+        </div>
+        <button type="button" class="quick-btn" style="margin-top:4px;" onclick="reloadFrame()">🔄 最新状態に再読み込み</button>
+      </div>
+
+      <div class="install-tip" id="installTip">
+        💡 <b>ホーム画面への追加方法</b><br>
+        Safari下の「共有（⎋）」➔「ホーム画面に追加」を行うと、アドレスバーなしの全画面アプリアイコンとして登録されます。
+      </div>
+    </div>
+  </div>
+
+  <!-- フローティング設定ボタン -->
+  <button type="button" class="gear-btn" onclick="openSetupModal()" title="設定・切替">⚙️</button>
+
+  <!-- メイン iframe -->
+  <div class="app-frame-wrap">
+    <iframe 
+      id="appFrame" 
+      src="about:blank" 
+      allow="geolocation; vibration; clipboard-write; clipboard-read;" 
+      onload="onFrameLoaded()">
+    </iframe>
+  </div>
+
+  <script>
+    const DEFAULT_GAS_URL = "";
+    const STORAGE_KEY = "ScoreRec_PwaGasUrl";
+
+    function getBaseUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const paramUrl = params.get('gasUrl') || params.get('url');
+      if (paramUrl) {
+        localStorage.setItem(STORAGE_KEY, paramUrl);
+        return paramUrl;
+      }
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return saved;
+
+      if (DEFAULT_GAS_URL && DEFAULT_GAS_URL.startsWith('http')) {
+        return DEFAULT_GAS_URL;
+      }
+      return null;
+    }
+
+    function buildUrlWithPage(base, page) {
+      if (!base) return '';
+      const cleanBase = base.split('?')[0];
+      if (page === 'handover') {
+        return cleanBase + '?page=handover';
+      }
+      return cleanBase;
+    }
+
+    function initPwa() {
+      // ホーム画面登録ヒント（非スタンドアロン時）
+      const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+      if (!isStandalone) {
+        const tip = document.getElementById('installTip');
+        if (tip) tip.style.display = 'block';
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const requestedPage = params.get('page') || 'main';
+
+      const base = getBaseUrl();
+      if (!base) {
+        document.getElementById('splashScreen').classList.add('fade-out');
+        document.getElementById('setupModal').style.display = 'flex';
+      } else {
+        const target = buildUrlWithPage(base, requestedPage);
+        const frame = document.getElementById('appFrame');
+        frame.src = target;
+      }
+    }
+
+    function saveGasUrl() {
+      const val = document.getElementById('inputGasUrl').value.trim();
+      if (!val || !val.startsWith('http')) {
+        alert('正しいGAS WebアプリURLを入力してください');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, val);
+      document.getElementById('setupModal').style.display = 'none';
+      document.getElementById('splashScreen').classList.remove('fade-out');
+      
+      const frame = document.getElementById('appFrame');
+      frame.src = val;
+    }
+
+    function openSetupModal() {
+      const current = localStorage.getItem(STORAGE_KEY) || DEFAULT_GAS_URL;
+      document.getElementById('inputGasUrl').value = current || '';
+      document.getElementById('setupModal').style.display = 'flex';
+    }
+
+    function closeSetupModal() {
+      const base = getBaseUrl();
+      if (base) {
+        document.getElementById('setupModal').style.display = 'none';
+      } else {
+        alert('先にGAS WebアプリURLを設定してください');
+      }
+    }
+
+    function switchPage(page) {
+      const base = getBaseUrl();
+      if (!base) {
+        alert('先にGAS WebアプリURLを設定してください');
+        return;
+      }
+      const target = buildUrlWithPage(base, page);
+      const frame = document.getElementById('appFrame');
+      document.getElementById('setupModal').style.display = 'none';
+      document.getElementById('splashScreen').classList.remove('fade-out');
+      frame.src = target;
+    }
+
+    function reloadFrame() {
+      const frame = document.getElementById('appFrame');
+      if (frame.src && frame.src !== 'about:blank') {
+        document.getElementById('setupModal').style.display = 'none';
+        document.getElementById('splashScreen').classList.remove('fade-out');
+        frame.src = frame.src;
+      }
+    }
+
+    function onFrameLoaded() {
+      const frame = document.getElementById('appFrame');
+      if (frame.src && frame.src !== 'about:blank') {
+        setTimeout(() => {
+          const splash = document.getElementById('splashScreen');
+          if (splash) splash.classList.add('fade-out');
+        }, 600);
+      }
+    }
+
+    // フェイルセーフ（最大6秒でスプラッシュ解除）
+    setTimeout(() => {
+      const splash = document.getElementById('splashScreen');
+      if (splash) splash.classList.add('fade-out');
+    }, 6000);
+
+    window.addEventListener('DOMContentLoaded', initPwa);
+  </script>
+</body>
+</html>
